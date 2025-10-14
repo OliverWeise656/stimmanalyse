@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stimmanalyse</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <script src="https://cdn.rawgit.com/mattdiamond/Recorderjs/08e7abd9/dist/recorder.js"></script>
+</head>
+<body>
+  <div class="container">
+    <h1>Stimmanalyse</h1>
+    <p>Wählen Sie eine ruhige Umgebung aus. Halten Sie einen Abstand von 15 bis 20 cm zum Mikrofon ein. Starten Sie die Aufnahme und folgen Sie jedem dieser Schritte:</p>
+    <ol>
+      <li>Nehmen Sie einen tiefen Atemzug und singen Sie ein langes 'a', solange Ihr Atem reicht.</li>
+      <li>Singen Sie den tiefstmöglichen Ton, den Sie kennen, so leise wie möglich.</li>
+      <li>Singen Sie nun denselben tiefen Ton, so laut wie möglich.</li>
+      <li>Anschließend singen Sie den höchstmöglichen Ton, den Sie erreichen können, so leise wie möglich.</li>
+      <li>Singen Sie diesen höchsten Ton, so laut wie möglich.</li>
+      <li>Zum Abschluss zählen Sie langsam bis 10.</li>
+      <li>Beenden Sie die Aufnahme und speichern Sie diese ab.</li>
+    </ol>
+    <button id="recordButton" class="btn">Start Recording</button>
+    <button id="stopButton" class="btn" disabled>Stop Recording</button>
+    <audio id="audioPlayback" controls></audio>
+    <a id="downloadButton" class="btn" disabled>Download Recording</a>
+    <div id="thankYouMessage" style="display:none;">
+      <p>Vielen Dank für Ihre Unterstützung!<p> Drücken Sie "Download Recording", wenn Sie mit dem Ergebnis zufrieden sind.<p> Dann werden die folgenden Dateien auf Ihrem Desktop gespeichert:</p>
+      <ul>
+        <li id="anamneseFile">Anamnese_und_Testergebnisse.pdf</li>
+        <li id="fragebogenFile">Fragebogen Stimme.pdf</li>
+        <li id="recordingFile">recording.wav</li>
+      </ul>
+      <p>Bitte senden Sie die Dateien an folgende eMail Adresse <a href="mailto:infoe@hno-stuttgart.com">info@hno-stuttgart.com</a>. <p><b>Die PDFs bringen Sie vorzugsweise ausgedruckt zu Ihrem Termin mit</b>.<p> Auf diese Weise können wir Ihren Besuch effizienter planen und Ihnen möglicherweise längere Warte- und Untersuchungszeiten ersparen.</p>
+    </div>
+  </div>
+
+  <script>
+    let audioContext;
+    let recorder;
+
+    function getFormattedDateTime() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+      return `${year}-${month}-${day}_${hours}-${minutes}-${seconds}`;
+    }
+
+    document.getElementById('recordButton').onclick = () => {
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        audioContext = new AudioContext();
+        const input = audioContext.createMediaStreamSource(stream);
+        recorder = new Recorder(input, { numChannels: 1 });
+
+        recorder.record();
+        document.getElementById('recordButton').disabled = true;
+        document.getElementById('stopButton').disabled = false;
+      });
+    };
+
+    document.getElementById('stopButton').onclick = () => {
+      recorder.stop();
+
+      // Erstelle den WAV-Download-Link
+      recorder.exportWAV(blob => {
+        const audioURL = URL.createObjectURL(blob);
+        document.getElementById('audioPlayback').src = audioURL;
+        const downloadButton = document.getElementById('downloadButton');
+        const timestamp = getFormattedDateTime();
+        downloadButton.href = audioURL;
+        downloadButton.download = `recording_${timestamp}.wav`;
+        downloadButton.disabled = false;
+
+        // Aktualisiere die Dateinamen in der Dankesnachricht
+        document.getElementById('anamneseFile').textContent = `Anamnese_und_Testergebnisse_${timestamp}.pdf`;
+        document.getElementById('fragebogenFile').textContent = `Fragebogen_Stimme_${timestamp}.pdf`;
+        document.getElementById('recordingFile').textContent = `recording_${timestamp}.wav`;
+
+        // Zeige die Dankesnachricht an
+        document.getElementById('thankYouMessage').style.display = 'block';
+      });
+
+      document.getElementById('recordButton').disabled = false;
+      document.getElementById('stopButton').disabled = true;
+    };
+  </script>
+</body>
+</html>
